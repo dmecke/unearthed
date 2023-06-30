@@ -57,7 +57,10 @@ const EXPLOSION_MUTATOR = (map: GameMap, timer: Timer): void => {
             if (x < 0 || x >= MAP_WIDTH || y < 0 || y >= MAP_DEPTH) {
                 continue;
             }
-            if (map.getTile(x,y, timer.layer) !== 0) {
+            
+            if (map.timers.some(t => t.tileIndex === x + y * MAP_WIDTH && t.layer === timer.layer)) {
+                map.game.triggerTimers(x, y);
+            } else  if (map.getTile(x,y, timer.layer) !== 0) {
                 map.setTile(x, y, 0, timer.layer);
                 for (let i=0;i<5;i++) {
                     addParticle(createDirtParticle((x+ 0.5) * TILE_SIZE, (y + 0.5) * TILE_SIZE));
@@ -104,7 +107,7 @@ export function initTiles() {
         22: { sprite: getSprite("tiles/gold"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
         23: { sprite: getSprite("tiles/diamond"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: true, blocksLight: true },
         24: { sprite: getSprite("tiles/platform"), blocks: false, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: false },
-        25: { sprite: getSprite("tiles/tnt"), blocks: true, blocksDown: true, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: EXPLOSION_MUTATOR } },
+        25: { sprite: getSprite("tiles/tnt"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, timer: { timer: 120, callback: EXPLOSION_MUTATOR } },
         26: { sprite: getSprite("tiles/torchtile"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: false, leaveBackground: false, blocksLight: false, light: true, backgroundDisabled: true},
         27: { sprite: getSprite("tiles/portal"), blocks: false, blocksDown: false, ladder: false, needsGround: false, blocksDiscovery: true, leaveBackground: false, blocksLight: true, backgroundDisabled: true, portal: (portal: Portal) => { const url = new URL(location.href); url.searchParams.set('portal', '1'); url.searchParams.set('server', portal?.code ?? ''); window.open(url.href) }},
     };
@@ -757,15 +760,6 @@ export class GameMap {
         // Add metadata for the placed block
         const tileDef = tiles[tile];
         if (tileDef) {
-            if (tileDef.timer) {
-                this.timers.push({
-                    tileIndex: x + (y * MAP_WIDTH),
-                    layer,
-                    timer: tileDef.timer.timer,
-                    callback: tileDef.timer.callback,
-                });
-            }
-            
             if (tileDef.portal) {
                 this.metaData.portals.push({
                     tileIndex: x + (y * MAP_WIDTH),

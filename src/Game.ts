@@ -747,17 +747,17 @@ export class Game implements ControllerListener {
      * Trigger whatever block we're on
      */
     private trigger() {
-        // right now this is only portals, but this dereference here to 
-        // support other triggers later
-        this.triggerPortal();
+        const x = Math.floor(this.player.x / TILE_SIZE);
+        const y = Math.floor(this.player.y / TILE_SIZE);
+
+        this.triggerPortal(x, y);
+        this.triggerTimers(x, y);
     }
 
     /**
      * Triggers the portal to assign it a code
      */
-    private triggerPortal() {
-        const x = Math.floor(this.player.x / TILE_SIZE);
-        const y = Math.floor(this.player.y / TILE_SIZE);
+    private triggerPortal(x: number, y: number) {
         const tileIndex = x + y * MAP_WIDTH;
         const portal = this.gameMap.metaData.portals.find(portal => portal.tileIndex === tileIndex);
         if (portal) {
@@ -769,6 +769,25 @@ export class Game implements ControllerListener {
                     portalTile.portal(portal);
                 }
             }
+        }
+    }
+
+    /**
+     * Triggers timers on the tile we're on
+     */
+    triggerTimers(x: number, y: number) {
+        console.log('trigger', x, y);
+        const tileIndex = x + y * MAP_WIDTH;
+        const layer = this.placingTilesOnFrontLayer ? Layer.FOREGROUND : Layer.BACKGROUND;
+        const tile = this.gameMap.getTile(x, y, layer);
+        const tileDef = tiles[tile];
+        if (tileDef && tileDef.timer && !this.gameMap.timers.some(timer => timer.tileIndex === tileIndex && timer.layer === layer)) {
+            this.gameMap.timers.push({
+                tileIndex: x + (y * MAP_WIDTH),
+                layer,
+                timer: tileDef.timer.timer,
+                callback: tileDef.timer.callback,
+            });
         }
     }
 
